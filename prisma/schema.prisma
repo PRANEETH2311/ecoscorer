@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicles         Vehicle[]
+  drivingSessions  DrivingSession[]
+  dailyReports     DailyReport[]
+  userAchievements UserAchievement[]
+}
+
+model Vehicle {
+  id        Int      @id @default(autoincrement())
+  make      String
+  model     String
+  year      Int
+  licensePlate String?
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  telemetryData   TelemetryData[]
+  drivingSessions DrivingSession[]
+}
+
+model TelemetryData {
+  id          Int      @id @default(autoincrement())
+  vehicleId   Int
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  timestamp   DateTime @default(now())
+  speed       Float
+  rpm         Float
+  maf         Float?
+  coolantTemp Float?
+  intakeTemp  Float?
+  throttlePos Float?
+  brakeStatus Boolean?
+  engineLoad  Float?
+}
+
+model DrivingSession {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  vehicleId Int
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
+  startTime DateTime @default(now())
+  endTime   DateTime?
+  distance  Float?   // km
+  fuelConsumed Float? // liters
+  co2Emitted   Float? // kg
+  ecoScore     Float? // 0-100
+  
+  // Aggregated behavior metrics
+  harshAccelerationCount Int @default(0)
+  harshBrakingCount      Int @default(0)
+  overSpeedingCount      Int @default(0)
+}
+
+model DailyReport {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime @default(now()) // Should be just date part in practice
+  totalDistance Float
+  totalFuel     Float
+  totalCO2      Float
+  avgEcoScore   Float
+  
+  createdAt DateTime @default(now())
+}
+
+model Achievement {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String
+  icon        String?
+  criteria    String?  // JSON or description of criteria
+  
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  achievementId Int
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  earnedAt      DateTime @default(now())
+}
