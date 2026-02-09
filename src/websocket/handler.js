@@ -73,17 +73,18 @@ module.exports = (io, prisma) => {
                 // Calculate smoothness
                 const smoothness = Math.max(0, 100 - Math.abs(throttlePos - (previous?.throttlePos || throttlePos)) * 2);
 
-                // Calculate EcoScore
-                const fuelEfficiency = speed > 10 ? Math.min(1, (speed / rpm) * 30) : 0.5;
-                const co2Normalized = Math.max(0, 1 - (emissions.co2Rate / 10));
-
+                // Calculate EcoScore with raw driving metrics
                 const scoreResult = ecoScoreService.calculateEcoScore({
-                    fuelEfficiency,
-                    co2Emission: co2Normalized,
+                    speed,
+                    rpm,
+                    throttlePos,
+                    brakePos,
+                    maf,
                     smoothness,
-                    penalties: (behavior.harshAcceleration ? 1 : 0) +
-                        (behavior.harshBraking ? 1 : 0) +
-                        (behavior.overSpeeding ? 1 : 0)
+                    co2Rate: emissions.co2 || 0,
+                    harshBraking: behavior.harshBraking,
+                    harshAcceleration: behavior.harshAcceleration,
+                    overSpeeding: behavior.overSpeeding
                 });
 
                 // Update state
