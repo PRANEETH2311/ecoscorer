@@ -115,11 +115,20 @@ module.exports = (io, prisma) => {
                     coolantTemp,
                     behavior,
                     emissions: {
-                        ...emissions,
+                        co2: emissions.co2 || 0,        // g/km
+                        nox: emissions.nox || 0,        // mg/km
+                        hc: emissions.hc || 0,          // mg/km
+                        pm: emissions.pm || 0,          // mg/km
+                        co2RateGPerSec: emissions.co2RateGPerSec || 0,
                         tripCO2: sessionStats[stateKey].tripCO2,
                         tripFuel: sessionStats[stateKey].tripFuel
                     },
-                    ecoScore: scoreResult.totalScore,
+                    ecoScore: {
+                        overall: scoreResult.totalScore || 75,
+                        efficiency: scoreResult.breakdown?.efficiency || 75,
+                        smoothness: scoreResult.breakdown?.smoothness || smoothness,
+                        emissions: scoreResult.breakdown?.emission || 75
+                    },
                     scoreBreakdown: scoreResult.breakdown,
                     smoothness,
                     timestamp: Date.now()
