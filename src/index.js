@@ -33,7 +33,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/vehicles', require('./routes/vehicles'));
 app.use('/api/telemetry', require('./routes/telemetry'));
-app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/api/leaderboard', require('./routes/leaderboard')(prisma));
 
 app.get('/', (req, res) => {
     res.send('EcoScorer API is running 🏎️');
