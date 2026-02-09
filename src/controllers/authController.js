@@ -95,7 +95,139 @@ const login = async (req, res) => {
     }
 };
 
+// Update user profile
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.userId; // From auth middleware
+        const { username, email, currentPassword, newPassword } = req.body;
+
+        // Get current user
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Prepare update data
+        const updateData = {};
+
+        // Update username if provided
+        if (username && username !== user.username) {
+            // Check if username is taken
+            const existingUsername = await prisma.user.findUnique({
+                where: { username }
+            });
+            if (existingUsername) {
+                return res.status(400).json({ message: 'Username already taken' });
+            }
+            updateData.username = username;
+        }
+
+        // Update email if provided
+        if (email && email !== user.email) {
+            // Check if email is taken
+            const existingEmail = await prisma.user.findUnique({
+                where: { email }
+            });
+            if (existingEmail) {
+                return res.status(400).json({ message: 'Email already taken' });
+            }
+            updateData.email = email;
+        }
+
+        // Update password if provided
+        if (newPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ message: 'Current password required to change password' });
+            }
+
+            // Verify current password
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ message: 'Current password is incorrect' });
+            }
+
+            // Hash new password
+            updateData.password = await bcrypt.hash(newPassword, 10);
+        }
+
+        // Only update if there's something to update
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: 'No changes to update' });
+        }
+
+        // Update user
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData
+        });
+
+        res.json({
+            message: 'Profile updated successfully',
+            user: {
+                id: updatedUser.id,
+                username: updatedUser.username,
+                email: updatedUser.email
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Delete user account
+const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.userId; // From auth middleware
+        const { password } = req.body;
+
+        // Get user
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Verify password for confirmation
+        if (password) {
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ message: 'Password is incorrect' });
+            }
+        }
+
+        // Delete all related data first (cascade delete)
+        await prisma.userAchievement.deleteMany({ where: { userId } });
+        await prisma.dailyReport.deleteMany({ where: { userId } });
+        await prisma.drivingSession.deleteMany({ where: { userId } });
+
+        // Delete vehicles and their telemetry
+        const vehicles = await prisma.vehicle.findMany({ where: { userId } });
+        for (const vehicle of vehicles) {
+            await prisma.telemetryData.deleteMany({ where: { vehicleId: vehicle.id } });
+        }
+        await prisma.vehicle.deleteMany({ where: { userId } });
+
+        // Finally delete the user
+        await prisma.user.delete({
+            where: { id: userId }
+        });
+
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Delete account error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     register,
-    login
+    login,
+    updateProfile,
+    deleteAccount
 };
