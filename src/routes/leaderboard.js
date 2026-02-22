@@ -273,7 +273,7 @@ module.exports = (prisma) => {
                         totalDistance: totalDistance || 0,
                         totalFuel: totalFuel || 0,
                         totalCO2: totalCO2 || 0,
-                        avgEcoScore: avgEcoScore || 75
+                        avgEcoScore: avgEcoScore || 0
                     }
                 });
             } else {
@@ -284,7 +284,7 @@ module.exports = (prisma) => {
                         totalDistance: totalDistance || 0,
                         totalFuel: totalFuel || 0,
                         totalCO2: totalCO2 || 0,
-                        avgEcoScore: avgEcoScore || 75
+                        avgEcoScore: avgEcoScore || 0
                     }
                 });
             }
